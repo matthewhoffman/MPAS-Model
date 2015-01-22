@@ -6,6 +6,7 @@ OBJS = 	mpas_li_mpas_core.o \
 	mpas_li_diagnostic_vars.o \
 	mpas_li_tendency.o \
 	mpas_li_setup.o \
+	mpas_li_statistics.o \
 	mpas_li_velocity.o \
 	mpas_li_sia.o \
 	mpas_li_mask.o
@@ -32,6 +33,7 @@ mpas_li_mpas_core.o: mpas_li_time_integration.o \
                      mpas_li_setup.o \
                      mpas_li_velocity.o \
                      mpas_li_diagnostic_vars.o \
+                     mpas_li_statistics.o \
                      mpas_li_mask.o
 
 mpas_li_setup.o:
@@ -54,7 +56,11 @@ mpas_li_velocity.o: mpas_li_sia.o \
 mpas_li_sia.o: mpas_li_mask.o \
                mpas_li_setup.o
 
+mpas_li_statistics.o: mpas_li_mask.o \
+                      mpas_li_setup.o
+
 mpas_li_mask.o: mpas_li_setup.o
+
 
 clean:
 	$(RM) *.o *.mod *.f90 libdycore.a
