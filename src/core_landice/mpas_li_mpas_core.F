@@ -11,9 +11,11 @@ module mpas_core
    use mpas_timekeeping
 
    implicit none
-   private
+!   private  ! TODO For now make this entire module public so that ACME can access
+! the private routines in here.  Longer-term, they should be moved to their own module
+! that either this driver or the ACME driver can access.
 
-   type (MPAS_Clock_type), pointer :: clock
+   type (MPAS_Clock_type), pointer, private :: clock
 
    !--------------------------------------------------------------------
    !
