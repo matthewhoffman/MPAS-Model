@@ -208,6 +208,11 @@ module li_time_integration_fe
       character (len=StrKIND) :: allowableDiffDtOnProcString, allowableDiffDtAllProcsString
       real (kind=RKIND), pointer :: allowableDtACFL, allowableDtDCFL
       integer :: err_tmp
+      real (kind=RKIND) :: smb_period, smb_slope, secondsFromStart, pii
+      type (MPAS_Time_type) :: startTime, currTime
+      type (MPAS_TimeInterval_type) :: intervalSinceStart
+      real (kind=RKIND), pointer :: config_ice_density
+      real (kind=RKIND), dimension(:), pointer :: sfcMassBal, xCell, yCell
 
       err = 0
 
@@ -233,6 +238,32 @@ module li_time_integration_fe
          call mpas_pool_get_subpool(block % structs, 'tendency', tendencyPool)
          call mpas_pool_get_subpool(block % structs, 'scratch', scratchPool)
          call mpas_pool_get_array(tendencyPool, 'layerThickness', layerThickness_tend)
+
+
+         ! Calculate analytic SMB
+         ! Check if we need to force a timestep length to hit the target interval
+         currTime = mpas_get_clock_time(domain % clock, MPAS_NOW, err_tmp)
+         err = ior(err,err_tmp)
+         startTime = mpas_get_clock_time(domain % clock, MPAS_START_TIME, err_tmp)
+         intervalSinceStart = currTime - startTime
+         call mpas_get_timeInterval(intervalSinceStart, dt=secondsFromStart, ierr=err_tmp)
+         err = ior(err,err_tmp)
+         call mpas_pool_get_config(liConfigs, 'config_ice_density', config_ice_density)
+         call mpas_pool_get_array(geometryPool, 'sfcMassBal', sfcMassBal)
+         call mpas_pool_get_array(meshPool, 'xCell', xCell)
+         call mpas_pool_get_array(meshPool, 'yCell', yCell)
+         smb_period = 20000.0_RKIND
+         smb_slope = 10.0**(-2)/1000.0_RKIND
+         pii = 2.*asin(1.0)
+!         Rel = 450000.0_RKIND + 100000.0_RKIND * sin(2.0_RKIND * pi * secondsFromStart / 31536000.0_RKIND / smb_period)
+!         distanceFromCenter = sqrt((xCell - 0.0_RKIND)**2 + (yCell - 0.0_RKIND)**2)
+!         sfcMassBal = min(0.5_RKIND, smb_slope * (Rel - distanceFromCenter))
+         sfcMassBal = min(0.5_RKIND, smb_slope * &
+               (450000.0_RKIND + 100000.0_RKIND * sin(2.0_RKIND * pii * secondsFromStart / 31536000.0_RKIND / smb_period) - &
+               sqrt((xCell - 0.0_RKIND)**2 + (yCell - 0.0_RKIND)**2)))  ! in m/yr
+         sfcMassBal = sfcMassBal * config_ice_density / 31536000.0_RKIND ! convert from m/yr to kg/m2/s
+
+
 
          ! Calculate thickness tendency using state at time n =========
          call li_tendency_thickness(meshPool, velocityPool, geometryPool, layerThickness_tend, dtSeconds, dminfo, allowableAdvecDt, err_tmp)
