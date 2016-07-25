@@ -95,6 +95,10 @@ module mpas_pool_routines
       module procedure mpas_pool_get_config_logical
    end interface
 
+   interface mpas_pool_get_config_fn
+      module procedure mpas_pool_get_config_real_fn
+   end interface
+
    interface mpas_pool_add_dimension
       module procedure mpas_pool_add_dimension_0d
       module procedure mpas_pool_add_dimension_1d
@@ -4240,6 +4244,28 @@ module mpas_pool_routines
 
 
 !-----------------------------------------------------------------------
+!  function mpas_pool_get_array_0d_real_fn
+!
+!> \brief MPAS Pool 0D Real field get function
+!> \author Michael Duda, Doug Jacobsen
+!> \date   03/27/2014
+!> \details
+!> This function returns a pointer to the array associated with key in inPool.
+!
+!-----------------------------------------------------------------------
+   function mpas_pool_get_array_0d_real_fn(inPool, key, timeLevel)!{{{
+      implicit none
+
+      real (kind=RKIND), pointer :: mpas_pool_get_array_0d_real_fn
+      type (mpas_pool_type), intent(in) :: inPool
+      character (len=*), intent(in) :: key
+      integer, intent(in), optional :: timeLevel
+
+      call mpas_pool_get_array_0d_real(inPool, key, mpas_pool_get_array_0d_real_fn, timeLevel)
+   end function mpas_pool_get_array_0d_real_fn!}}}
+
+
+!-----------------------------------------------------------------------
 !  subroutine mpas_pool_get_array_1d_real
 !
 !> \brief MPAS Pool 1D Real field get subroutine
@@ -4806,7 +4832,7 @@ module mpas_pool_routines
 
       type (mpas_pool_type), intent(in) :: inPool
       character (len=*), intent(in) :: key
-      real (kind=RKIND), pointer :: value
+      real (kind=RKIND), pointer, intent(out) :: value
       character (len=*), intent(in), optional :: record
       type (mpas_pool_type), pointer :: recordPool
 
@@ -4829,6 +4855,31 @@ module mpas_pool_routines
       end if
 
    end subroutine mpas_pool_get_config_real!}}}
+
+
+!-----------------------------------------------------------------------
+!  subroutine mpas_pool_get_config_real_fn
+!
+!> \brief MPAS Pool Real Config Access Function
+!> \author Michael Duda, Doug Jacobsen
+!> \date   03/27/2014
+!> \details
+!> This function returns the value associated with a config option with the
+!> name key in inPool.
+!
+!-----------------------------------------------------------------------
+   function mpas_pool_get_config_real_fn(inPool, key, record)!{{{
+      implicit none
+
+      real (kind=RKIND) :: mpas_pool_get_config_real_fn
+      type (mpas_pool_type), intent(in) :: inPool
+      character (len=*), intent(in) :: key
+      character (len=*), intent(in), optional :: record
+      real (kind=RKIND), pointer :: value
+
+      call mpas_pool_get_config_real(inPool, key, value, record)
+      mpas_pool_get_config_real_fn = value
+   end function mpas_pool_get_config_real_fn!}}}
 
 
 !-----------------------------------------------------------------------
