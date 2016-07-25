@@ -97,6 +97,7 @@ module mpas_pool_routines
 
    interface mpas_pool_get_config_fn
       module procedure mpas_pool_get_config_real_fn
+      module procedure mpas_pool_get_config_int_fn
    end interface
 
    interface mpas_pool_add_dimension
@@ -4922,6 +4923,31 @@ module mpas_pool_routines
       end if
 
    end subroutine mpas_pool_get_config_int!}}}
+
+
+!-----------------------------------------------------------------------
+!  subroutine mpas_pool_get_config_int_fn
+!
+!> \brief MPAS Pool Integer Config Access Function
+!> \author Michael Duda, Doug Jacobsen
+!> \date   03/27/2014
+!> \details
+!> This function returns the value associated with a config option with the
+!> name key in inPool.
+!
+!-----------------------------------------------------------------------
+   function mpas_pool_get_config_int_fn(inPool, key, record)!{{{
+      implicit none
+
+      integer :: mpas_pool_get_config_int_fn
+      type (mpas_pool_type), intent(in) :: inPool
+      character (len=*), intent(in) :: key
+      character (len=*), intent(in), optional :: record
+      integer, pointer :: value
+
+      call mpas_pool_get_config_int(inPool, key, value, record)
+      mpas_pool_get_config_int_fn = value
+   end function mpas_pool_get_config_int_fn!}}}
 
 
 !-----------------------------------------------------------------------
