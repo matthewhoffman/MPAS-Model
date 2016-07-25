@@ -95,11 +95,6 @@ module mpas_pool_routines
       module procedure mpas_pool_get_config_logical
    end interface
 
-   interface mpas_pool_get_config_fn
-      module procedure mpas_pool_get_config_real_fn
-      module procedure mpas_pool_get_config_int_fn
-   end interface
-
    interface mpas_pool_add_dimension
       module procedure mpas_pool_add_dimension_0d
       module procedure mpas_pool_add_dimension_1d
