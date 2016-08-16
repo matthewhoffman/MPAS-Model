@@ -1010,43 +1010,7 @@ def add_links(config_file, configs):#{{{
 
 			try:
 				source_path_name = child.attrib['source_path']
-
-				keyword_path = False
-				if source_path_name.find('work_') >= 0:
-					keyword_path = True
-				elif source_path_name.find('script_') >= 0:
-					keyword_path = True
-
-				if not keyword_path:
-					try:
-						source_path = configs.get('paths', source_path_name)
-					except:
-						source_path = 'NONE'
-
-					if source_path == 'NONE':
-						try:
-							source_path = configs.get('script_paths', source_path_name)
-						except:
-							source_path = 'NONE'
-
-					if source_path == 'NONE':
-						print "ERROR: source_path on <add_link> tag is '%s' which is not defined"%(source_path_name)
-						print "Exiting..."
-						sys.exit(1)
-
-				else:
-					source_arr = source_path_name.split('_')
-					base_name = source_arr[0]
-					subname = '%s_%s'%(source_arr[1], source_arr[2])
-
-					if base_name == 'work':
-						file_base_path = 'work_dir'
-					elif base_name == 'script':
-						file_base_path = 'script_path'
-
-					if subname in {'core_dir', 'configuration_dir', 'resolution_dir', 'test_dir', 'case_dir'}:
-						source_path = '%s/%s'%(configs.get('script_paths', file_base_path), configs.get('script_paths', subname))
-
+                                source_path = expand_path(source_path_name, configs)
 				source_file = '%s/%s'%(source_path, source)
 			except:
 				source_file = '%s'%(source)
@@ -1105,7 +1069,7 @@ def get_defined_files(config_file, init_path, configs):#{{{
 		if get_file.tag == 'get_file':
 			# Determine dest_path
 			try:
-				dest_path_name = get_file.attrib['dest_path']
+				orig_dest_path_name = get_file.attrib['dest_path']
 			except:
 				print " get_file tag is missing the 'dest_path' attribute."
 				print " Exiting..."
@@ -1119,37 +1083,8 @@ def get_defined_files(config_file, init_path, configs):#{{{
 				print " Exiting..."
 				sys.exit(1)
 
-			# Build out the dest path
-			keyword_path = False
-			if dest_path_name.find('work_') >= 0:
-				keyword_path = True
-			elif dest_path_name.find('script_') >= 0:
-				keyword_path = True
-			else:
-				try:
-					dest_path = '%s'%(configs.get('paths', dest_path_name))
-				except:
-					print " Path '%s' is not defined in the config file, but is required to get a file."%(dest_path_name)
-					print " Exiting..."
-					sys.exit(1)
-
-
-			if keyword_path:
-				dest_arr = dest_path_name.split('_')
-				base_name = dest_arr[0]
-				subname = '%s_%s'%(dest_arr[1], dest_arr[2])
-
-				if base_name == 'work':
-					base_path = 'work_dir'
-				elif base_name == 'script':
-					base_path = 'script_path'
-
-				if subname in {'core_dir', 'configuration_dir', 'resolution_dir', 'test_dir', 'case_dir'}:
-					dest_path = '%s/%s'%(configs.get('script_paths', base_path), configs.get('script_paths', subname))
-				else:
-					print " Path '%s' is not defined."%(dest_path_name)
-					print " Exiting..."
-					sys.exit(1)
+                        # Expand coded path to absolute filesystem path
+                        dest_path = expand_path(orig_dest_path_name, configs)
 
 			# if the dest_path doesn't exist, create it
 			if not os.path.exists(dest_path):
@@ -1191,6 +1126,44 @@ def get_defined_files(config_file, init_path, configs):#{{{
 										print "  -- Web mirror attempt failed. Trying other mirrors..."
 
 
+							# Process a cp mirror
+                                                        # Note this can be specified in two ways:
+                                                        # 1. source_path + '/' + file_name
+                                                        # 2. source_path (where source_path includes the file name)  This serves as a way to rename the file
+							if protocol == 'cp':
+                                                                try:
+                                                                        base_path = mirror.attrib['base_path']
+                                                                except:
+									print " Mirror with protocol 'cp' is missing a 'base_path' attribute."
+									print " Exiting..."
+									sys.exit(1)
+                                                                try:
+                                                                        rel_path = mirror.attrib['relative_path']
+                                                                except:
+									print " Mirror with protocol 'cp' is missing a 'relative_path' attribute."
+									print " Exiting..."
+									sys.exit(1)
+
+                                                                # Expand base_path
+                                                                base_path_absolute = expand_path(base_path, configs)
+                                                                src_path = os.path.join(base_path_absolute, rel_path)  # build complete path, absolute
+
+                                                                if os.path.isfile(os.path.join(src_path, file_name)): # style 1
+                                                                        src_path = os.path.join(src_path, file_name)
+                                                                elif os.path.isfile(src_path):  # style 2
+                                                                        pass  # already have the complete path to the file
+                                                                else:
+                                                                        print " Mirror with protocol 'cp' refers to a file that cannot be found: ", src_path
+									print " Exiting..."
+									sys.exit(1)
+
+								# Now actually copy it
+                                                                try:
+								        shutil.copyfile(src_path, dest_path)
+								except:
+									print " Copy file failed...."
+
+
 						# If the file exists in dest_path, determine if it should be validated
 						if os.path.exists('%s/%s'%(dest_path, file_name)):
 							try:
@@ -1230,6 +1203,46 @@ def get_defined_files(config_file, init_path, configs):#{{{
 	dev_null.close()
 #}}}
 
+
+def expand_path(orig_path, configs):#{{{
+        # This function expands out the shorthand sub-paths that refer to specific locations
+	# Build out the path
+	keyword_path = False
+        # Check keyword paths
+	if orig_path.find('work_') >= 0:
+		keyword_path = True
+	elif orig_path.find('script_') >= 0:
+		keyword_path = True
+	else: # Check paths defined in the config file
+		try:
+			dest_path = '%s'%(configs.get('paths', dest_path_name))
+		except:
+			print " Path '%s' is not defined in the config file, but is required to get a file."%(dest_path_name)
+			print " Exiting..."
+			sys.exit(1)
+
+	if keyword_path:
+		dest_arr = orig_path.split('_')
+		base_name = dest_arr[0]
+		subname = '%s_%s'%(dest_arr[1], dest_arr[2])
+
+		if base_name == 'work':
+			base_path = 'work_dir'
+		elif base_name == 'script':
+			base_path = 'script_path'
+
+		if subname in {'core_dir', 'configuration_dir', 'resolution_dir', 'test_dir', 'case_dir'}:
+			full_path = '%s/%s'%(configs.get('script_paths', base_path), configs.get('script_paths', subname))
+		else:
+			print " Sub-path '%s' is not defined."%(subname)
+			print " Exiting..."
+			sys.exit(1)
+        else:  # No expansion necessary
+                full_path = orig_path
+        return full_path
+#}}}
+
+
 def get_template_info(template, configs):#{{{
 	# Determine template attributes
 	try:
@@ -1250,29 +1263,8 @@ def get_template_info(template, configs):#{{{
 		template_path_modifier = '/%s'%(template.attrib['path'])
 	except:
 		template_path_modifier = ''
-	
-	# Determine template path from it's path_base attributes
-	if template_path_base.find('work_') >= 0:
-		keyword_path = True
-	elif template_path_base.find('script_') >= 0:
-		keyword_path = True
 
-	if keyword_path:
-		template_arr = template_path_base.split('_')
-		base = template_arr[0]
-		if base == 'work':
-			base_path = 'work_dir'
-		elif base == 'script':
-			base_path = 'script_path'
-
-		sub_path = '%s_%s'%(template_arr[1], template_arr[2])
-
-		if sub_path in {'core_dir', 'configuration_dir', 'resolution_dir', 'test_dir'}:
-			template_path = '%s/%s%s'%(configs.get('script_paths', base_path), configs.get('script_paths', sub_path), template_path_modifier)
-		else:
-			print " Template path_base '%s' does not exist"%(template_path_base)
-			print " Exiting..."
-			sys.exit(1)
+        template_path = expand_path(template_path_base, configs)
 
 	info = {}
 	info['template_file'] = template_file
