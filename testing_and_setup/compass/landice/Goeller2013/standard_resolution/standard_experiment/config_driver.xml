@@ -1,0 +1,16 @@
+<driver_script name="setup_and_run_testcase.py">
+
+        <case name="setup_mesh">
+                <step executable="./setup_mesh.py" quiet="false" pre_message=" * Running setup_mesh step" post_message="     Complete"/>
+        </case>
+
+        <case name="hydro_only">
+                <step executable="./run_hydro.py" quiet="false" pre_message=" * Running hydro_only step" post_message="     Complete"/>
+        </case>
+
+        <case name="icedynamics_only">
+                <step executable="./run_icedynamics.py" quiet="false" pre_message=" * Running icedynamics_only step" post_message="     Complete"/>
+        </case>
+
+</driver_script>
+
