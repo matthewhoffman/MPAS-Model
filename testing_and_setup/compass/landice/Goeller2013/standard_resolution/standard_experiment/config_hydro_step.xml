@@ -7,20 +7,32 @@
         <add_executable source="model" dest="landice_model"/>
         <!-- link in scripts that a user might want -->
         <add_link source_path="script_configuration_dir" source="setup_goeller_initial_conditions.py" dest="."/>
+        <add_link source_path="script_configuration_dir" source="plot_initial_conditions.py" dest="."/>
+        <add_link source_path="script_configuration_dir" source="plot_output.py" dest="."/>
+        <add_link source_path="script_configuration_dir" source="albany_input.xml" dest="."/>
 
 
 
         <namelist name="namelist.landice" mode="forward">
                 <template file="goeller_template.xml" path_base="script_configuration_dir"/>
-                <option name="config_stop_time">'0500-01-01_00:00:00'</option>
+                <option name="config_velocity_solver">'none'</option>
+                <option name="config_thickness_advection">'none'</option>
+                <option name="config_dt">'0000-01-00_00:00:00'</option>
+                <option name="config_adaptive_timestep">.false.</option>
+                <option name="config_adaptive_timestep_include_DCFL">.false.</option>
+                <option name="config_stop_time">'0010-01-01_00:00:00'</option>
                 <option name="config_SGH_active">.true.</option>
+                <option name="config_SGH_alpha">1.0</option>
+                <option name="config_SGH_beta">2.0</option>
+                <option name="config_SGH_till_drainage">0.0</option>
+                <option name="config_SGH_till_max">0.0</option>
         </namelist>
 
 
         <streams name="streams.landice" keep="immutable" mode="forward">
                 <template file="goeller_template.xml" path_base="script_configuration_dir"/>
                 <stream name="output">
-                        <attribute name="output_interval">0001-00-00_00:00:00</attribute>
+                        <attribute name="output_interval">0000-01-00_00:00:00</attribute>
                 </stream>
         </streams>
 

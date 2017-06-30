@@ -10,12 +10,12 @@
                 <option name="config_min_adaptive_timestep">0.0</option>
                 <option name="config_max_adaptive_timestep">3.15e9</option>
                 <option name="config_adaptive_timestep_CFL_fraction">0.25</option>
-                <option name="config_adaptive_timestep_include_DCFL">.false.</option>
-                <option name="config_adaptive_timestep_force_interval">'00100-00-00_00:00:00'</option>
+                <option name="config_adaptive_timestep_include_DCFL">.true.</option>
+                <option name="config_adaptive_timestep_force_interval">'00001-00-00_00:00:00'</option>
                 <option name="config_dt">'0001-00-00_00:00:00'</option>
                 <option name="config_run_duration">'none'</option>
                 <option name="config_start_time">'0000-01-01_00:00:00'</option>
-                <option name="config_stop_time">'15000-01-01_00:00:00'</option>
+                <option name="config_stop_time">'00050-01-01_00:00:00'</option>
                 <option name="config_year_digits">5</option>
                 <option name="config_block_decomp_file_prefix">'graph.info.part.'</option>
         </namelist>
@@ -30,25 +30,28 @@
                         <attribute name="type">output</attribute>
                         <attribute name="filename_template">output_$Y.nc</attribute>
                         <attribute name="filename_interval">20000-00-00_00:00:00</attribute>
-                        <attribute name="output_interval">1000-00-00_00:00:00</attribute>
+                        <attribute name="output_interval">0001-00-00_00:00:00</attribute>
                         <attribute name="reference_time">00000-01-01_00:00:00</attribute>
-                        <attribute name="clobber_mode">truncate</attribute>
+                        <attribute name="clobber_mode">overwrite</attribute>
                         <add_contents>
                                 <member name="basicmesh" type="stream"/>
                                 <member name="xtime" type="var"/>
                                 <member name="deltat" type="var"/>
-                                <member name="allowableDtACFL" type="var"/>
-                                <member name="allowableDtDCFL" type="var"/>
+                                <member name="daysSinceStart" type="var"/>
                                 <member name="thickness" type="var"/>
                                 <member name="upperSurface" type="var"/>
                                 <member name="bedTopography" type="var"/>
-                                <member name="uReconstructZonal" type="var"/>
-                                <member name="uReconstructMeridional" type="var"/>
                                 <member name="basalMassBal" type="var"/>
-                                <member name="edgeMask" type="var"/>
-                                <member name="cellMask" type="var"/>
+                                <member name="sfcMassBal" type="var"/>
                                 <member name="surfaceSpeed" type="var"/>
-                                <member name="daysSinceStart" type="var"/>
+                                <member name="uReconstructX" type="var"/>
+                                <member name="uReconstructY" type="var"/>
+                                <member name="waterThickness" type="var"/>
+                                <member name="waterPressure" type="var"/>
+                                <member name="basalMeltInput" type="var"/>
+                                <member name="effectivePressure" type="var"/>
+                                <member name="openingRate" type="var"/>
+                                <member name="closingRate" type="var"/>
                         </add_contents>
                 </stream>
 
@@ -67,6 +70,8 @@
                                 <member name="allowableDtDCFL" type="var"/>
                                 <member name="daysSinceStart" type="var"/>
                                 <member name="edgeMask" type="var"/>
+                                <member name="dirichletVelocityMask" type="var"/>
+                                <member name="waterFluxMask" type="var"/>
                         </add_contents>
                 </stream>
 
@@ -74,7 +79,7 @@
                         <attribute name="type">input;output</attribute>
                         <attribute name="filename_template">restart_$Y.nc</attribute>
                         <attribute name="filename_interval">output_interval</attribute>
-                        <attribute name="output_interval">1000-00-00_00:00:00</attribute>
+                        <attribute name="output_interval">0010-00-00_00:00:00</attribute>
                         <attribute name="clobber_mode">truncate</attribute>
                         <attribute name="precision">double</attribute>
                         <attribute name="input_interal">initial_only</attribute>
