@@ -8,6 +8,7 @@
         <add_executable source="grid_to_li_grid" dest="create_landice_grid_from_generic_MPAS_grid.py"/>
         <add_executable source="metis" dest="metis"/>
         <add_executable source="mark_periodic_cells" dest="mark_periodic_boundaries_for_culling.py"/>
+        <add_executable source="mark_horns_for_culling" dest="mark_horns_for_culling.py"/>
         <add_link source_path="script_configuration_dir" source="setup_goeller_initial_conditions.py" dest="."/>
         <add_link source_path="work_case_dir" source="culled_graph.info" dest="graph.info"/>
         <add_link source_path="script_resolution_dir" source="namelist.input" dest="namelist.input"/>
@@ -19,7 +20,7 @@
                 <step executable="./periodic_grid" pre_message="\n\n### Creating periodic_hex mesh\n\n" post_message="\n\n### periodic_hex mesh creation complete\n\n">
                 </step>
 
-                <!-- mark cells for culling -->
+                <!-- mark boundary cells for culling -->
                 <step executable="./mark_periodic_boundaries_for_culling.py" >
                         <argument flag="-f">grid.nc</argument>
                         <argument flag="--remove_extra_y"></argument>
@@ -28,12 +29,23 @@
                 <!-- cull cells -->
                 <step executable="./MpasCellCuller.x" >
                         <argument flag="">grid.nc</argument>
-                        <argument flag="">culled_grid.nc</argument>
+                        <argument flag="">culled_grid1.nc</argument>
+                </step>
+
+                <!-- mark 'horn' cells for culling -->
+                <step executable="./mark_horns_for_culling.py" >
+                        <argument flag="-f">culled_grid1.nc</argument>
+                </step>
+
+                <!-- cull cells -->
+                <step executable="./MpasCellCuller.x" >
+                        <argument flag="">culled_grid1.nc</argument>
+                        <argument flag="">culled_grid2.nc</argument>
                 </step>
 
                 <!-- Convert from basic MPAS mesh to MPASLI mesh -->
                 <step executable="./create_landice_grid_from_generic_MPAS_grid.py" pre_message="\n\n### Creating LI mesh\n\n" post_message="\n\n### LI mesh creation complete\n\n">
-                        <argument flag="-i">culled_grid.nc</argument>
+                        <argument flag="-i">culled_grid2.nc</argument>
                         <argument flag="-o">landice_grid.nc</argument>
                         <argument flag="-l">10</argument>
                         <argument flag="--diri"></argument>
