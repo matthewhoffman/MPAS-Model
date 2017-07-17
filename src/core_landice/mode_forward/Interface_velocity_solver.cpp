@@ -64,6 +64,7 @@ std::vector<bool> isVertexBoundary, isBoundaryEdge;
 ;
 int numBoundaryEdges;
 double radius;
+int timestepcount=0;
 
 exchangeList_Type const *sendCellsList_F = 0, *recvCellsList_F = 0;
 exchangeList_Type const *sendEdgesList_F = 0, *recvEdgesList_F = 0;
@@ -380,6 +381,83 @@ void velocity_solver_solve_fo(double const* bedTopography_F, double const* lower
 
     double dt = (*deltat)/secondsInAYear;
     int albany_error;
+
+
+    char from_int[32];
+    sprintf(from_int, "solve_fields_out.%i.txt", timestepcount);
+    std::string filename = from_int;
+//    timestepcount++;
+    std::cout << "Writing " << filename << std::endl;
+    std::ofstream outfile;
+    outfile.open (filename.c_str(), std::ios::out | std::ios::trunc);
+    if (outfile.is_open()) {
+
+       outfile << "nVertices" << "\n";  
+       outfile << nVertices<< "\n";  
+
+       outfile << "nTriangles" << "\n";  
+       outfile <<nTriangles << "\n";  
+
+       outfile << "nLayers" << "\n";  
+       outfile << nLayers << "\n";  
+
+       outfile << "nGlobalVertices" << "\n";  
+       outfile << nGlobalVertices<< "\n";  
+
+       outfile << "nGlobalTriangles" << "\n";  
+       outfile << nGlobalTriangles<< "\n";  
+
+       outfile << "Ordering" << "\n";  
+       outfile << Ordering<< "\n";  
+
+       outfile << "first_time_step" << "\n";  
+       outfile << first_time_step<< "\n";  
+
+       outfile << "indexToVertexID" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << indexToVertexID[i] << "\n";
+
+       outfile << "indexToTriangleID" << "\n";  
+       for(int i = 0; i < nTriangles; ++i) outfile << indexToTriangleID[i] << "\n";
+
+       outfile << "minBeta" << "\n";  
+       outfile <<minBeta << "\n";  
+
+       outfile << "regulThk" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << regulThk[i] << "\n";
+
+       outfile << "levelsNormalizedThickness" << "\n";  
+       for(int i = 0; i < nLayers; ++i) outfile << levelsNormalizedThickness[i] << "\n";
+
+       outfile << "elevationData" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << elevationData[i] << "\n";
+
+       outfile << "thicknessData" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << thicknessData[i] << "\n";
+
+       outfile << "betaData" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << betaData[i] << "\n";
+
+       outfile << "bedTopographyData" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << bedTopographyData[i] << "\n";
+
+       outfile << "smbData" << "\n";  
+       for(int i = 0; i < nVertices; ++i) outfile << smbData[i] << "\n";
+
+       outfile << "temperatureOnTetra" << "\n";  
+       for(int i = 0; i<nTriangles; ++i)  //temperature values layer by layer
+         for(int il = 0; il<nLayers; ++il)
+           outfile << temperatureOnTetra[i + il * nLayers ]<<"\n";
+
+       outfile << "dt" << "\n";  
+       outfile << dt << "\n";  
+
+       outfile.close();
+    }
+    else {
+       std::cout << "Error: Failed to open  "+filename << std::endl;
+    }
+
+
     velocity_solver_solve_fo__(nLayers, nGlobalVertices, nGlobalTriangles,
         Ordering, first_time_step, indexToVertexID, indexToTriangleID, minBeta,
         regulThk, levelsNormalizedThickness, elevationData, thicknessData,
@@ -1016,6 +1094,7 @@ void interface_redirect_stdout(int const* iTimestep) {
     std::cout << "--- Beginning Albany velocity solve for timestep " << *iTimestep << " ---" << std::endl;
     std::cout << std::endl;
   }
+  timestepcount = *iTimestep;
 }
 
 
