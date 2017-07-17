@@ -367,7 +367,7 @@ void velocity_solver_solve_fo(double const* bedTopography_F, double const* lower
 
 
 
-    import2DFields(bedTopography_F, lowerSurface_F, thickness_F, beta_F, smb_F,  minThickness);
+    import2DFieldsExtendAll(bedTopography_F, lowerSurface_F, thickness_F, beta_F, smb_F,  minThickness);
 
     std::vector<double> regulThk(thicknessData);
     for (int index = 0; index < nVertices; index++)
@@ -1592,7 +1592,7 @@ void import2DFields(double const* bedTopography_F, double const * lowerSurface_F
     int ic = it->second;
     thicknessData[iv] = std::max(thickness_F[ic] / unit_length, eps);
     bedTopographyData[iv] = bedTopography_F[ic] / unit_length;
-    elevationData[iv] = thicknessData[iv] + lowerSurface_F[ic] / unit_length;
+    elevationData[iv] = (thicknessData[iv] + lowerSurface_F[ic]) / unit_length;
     if (beta_F != 0)
       betaData[iv] = beta_F[ic] / unit_length;
     if (smb_F != 0)
@@ -1600,6 +1600,93 @@ void import2DFields(double const* bedTopography_F, double const * lowerSurface_F
   }
 
 }
+
+
+void import2DFieldsExtendAll(double const* bedTopography_F, double const * lowerSurface_F, double const * thickness_F,
+    double const * beta_F, double const * smb_F, double eps) {
+  elevationData.assign(nVertices, 1e10);
+  thicknessData.assign(nVertices, 1e10);
+  bedTopographyData.assign(nVertices, 1e10);
+  if (beta_F != 0)
+    betaData.assign(nVertices, 1e10);
+  if (smb_F != 0)
+    smbData.assign(nVertices, 1e10);
+
+  std::map<int, int> bdExtensionMap;
+
+  //import fields
+  for (int index = 0; index < nVertices; index++) {
+    int iCell = vertexToFCell[index];
+    thicknessData[index] = std::max(thickness_F[iCell] / unit_length, eps);
+    bedTopographyData[index] = bedTopography_F[iCell] / unit_length;
+    elevationData[index] = lowerSurface_F[iCell] / unit_length + thicknessData[index];
+    if (beta_F != 0)
+      betaData[index] = beta_F[iCell] / unit_length;
+    if (smb_F != 0)
+      smbData[index] = smb_F[iCell] / unit_length * secondsInAYear/rho_ice;
+  }
+
+  //extend scalar values to undefined points that are added to complete triangles.
+  std::set<int>::const_iterator iter;
+
+  for (int iV = 0; iV < nVertices; iV++) {
+     int c;
+     int fCell = vertexToFCell[iV];
+     if (isVertexBoundary[iV] && !(cellsMask_F[fCell] & ice_present_bit_value)) {
+        int nEdg = nEdgesOnCells_F[fCell];
+        double thickTemp = 1.0e10;
+        bool foundNeighbor = false;
+
+
+        // Identify the neighbor with the thinnest ice.
+        // Scalar values will be mapped from the location to here
+        for (int j = 0; j < nEdg; j++) {
+           int fEdge = edgesOnCell_F[maxNEdgesOnCell_F * fCell + j] - 1;
+           int c0 = cellsOnEdge_F[2 * fEdge] - 1;
+           int c1 = cellsOnEdge_F[2 * fEdge + 1] - 1;
+           c = (fCellToVertex[c0] == iV) ? c1 : c0;
+           if(!(cellsMask_F[c] & ice_present_bit_value)) continue;
+           if (thickness_F[c] < thickTemp) {
+              thickTemp = thickness_F[c];
+              bdExtensionMap[iV] = c;
+              foundNeighbor = true;
+           }
+        }
+
+     } // is boundary
+  }  // vertex loop
+
+  // Apply extension where needed
+  for (std::map<int, int>::iterator it = bdExtensionMap.begin();
+      it != bdExtensionMap.end(); ++it) {
+    int iv = it->first;
+    int ic = it->second;
+
+    // Set thickness to thinnest neighbor
+    thicknessData[iv] = std::max(thickness_F[ic] / unit_length, eps);
+
+    // ! Don't extend bed topo - use what's there
+
+    // Set surface elevation here based on floatation criterion
+    if (thicknessData[iv] * (rho_ice / rho_ocean) > -1.0 * bedTopographyData[iv]) {
+       elevationData[iv] = (thicknessData[iv] + bedTopographyData[iv]) / unit_length;
+    } else {
+       elevationData[iv] = (rho_ocean / rho_ice - 1.0) * thicknessData[iv];  // floating surface
+    }
+
+    // Extend beta
+    if (beta_F != 0)
+      betaData[iv] = beta_F[ic] / unit_length;
+
+    // Extend SMB
+    if (smb_F != 0)
+      smbData[iv] = smb_F[ic] / unit_length * secondsInAYear/rho_ice;
+
+    // TODO: Extend temperature
+  }
+
+}
+
 
 void importP0Temperature(double const * temperature_F) {
   int lElemColumnShift = (Ordering == 1) ? 3 : 3 * indexToTriangleID.size();
