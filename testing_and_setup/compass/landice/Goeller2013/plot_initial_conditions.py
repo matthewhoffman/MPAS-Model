@@ -1,17 +1,12 @@
 #!/usr/bin/env python
 '''
-Plot the results for the model spinup.
+Plot the initial conditions for the Goeller test case.
 '''
 import numpy as np
 import netCDF4
-#import datetime
-# import math
-# from pylab import *
 from optparse import OptionParser
 import matplotlib.pyplot as plt
 from matplotlib import cm
-# from matplotlib.contour import QuadContourSet
-# import time
 
 parser = OptionParser()
 parser.add_option("-f", "--file", dest="filename", help="file to visualize", metavar="FILE")
@@ -44,46 +39,43 @@ H = f.variables['thickness'][0,:]
 b = f.variables['bedTopography'][0,:]
 Ubsl = f.variables['uReconstructX'][0,:,-1]
 SMB = f.variables['sfcMassBal'][0,:]
+bmelt = f.variables['basalMeltInput'][0,:]
+
+############################################################################################
+
+# Adjust the x values so that 0 km is the ice sheet margin
+x0 = xCell[:].max()-200000.     # ice sheet margin
+if xCell[:].min() >= 0.:
+    xCell[:] -= x0
 
 # Find center row
 unique_ys=np.unique(yCell[:])
+unique_xs = np.unique(xCell[:])
 centerY=unique_ys[np.argmin(abs(unique_ys-(unique_ys.max()-unique_ys.min())/2.))]
 print "number of ys, center Y value", len(unique_ys), centerY
-ind = np.nonzero(yCell[:] == centerY)[0]
+center_ind = np.nonzero(yCell[:] == centerY)[0]
+
+# calculate a mean profile
+def MeanProf(variable):
+    prof = np.empty_like(unique_xs)
+    for i in range(len(unique_xs)):
+        ind = np.where(xCell[:]==unique_xs[i])
+        prof[i] = np.mean(variable[ind])
+    return prof
 
 ############################################################################################
 
 print "start plotting."
 
-# reduce the number of sampled points and plot all those that are sampled
-output_cells = np.zeros(np.shape(xCell[:]))
-output_cells[ind] = 1.
-
-### plot the indexed values
-
-markersize = 30.0
-gray = np.ones(3)*0.8
-
-fig = plt.figure(1, figsize=(9,6), facecolor='w', dpi=100)
-fig.add_subplot(1,1,1)
-
-plt.scatter(xCell[:]/1000.0,yCell[:]/1000.0,markersize,output_cells[:], marker='h', edgecolors='none')
-plt.colorbar()
-plt.axis('equal')
-plt.title('Output Cell Locations')
-plt.xlabel('x (km)'); plt.ylabel('y (km)')
-
-#############################################################################################
-
 ### plot variables at the indexed locations to be sure of convergence onto a steady state
 
-fig = plt.figure(2, figsize = (9,6), facecolor='w')
-nplot=3
+fig = plt.figure(2, figsize = (12,9), facecolor='w')
+nplot=4
 
 # Initial glacier profile
 ax1 = fig.add_subplot(nplot,1,1)
-plt.plot(xCell[ind]/1000.,H[ind])
-plt.plot(xCell[ind]/1000.,b[ind])
+plt.plot(unique_xs/1000.,MeanProf(H[:]))
+plt.plot(unique_xs/1000.,MeanProf(b[:]))
 plt.xlabel('X-distance (km)')
 plt.ylabel('Ice Thickness (m)')
 plt.legend(fontsize=6)
@@ -91,15 +83,23 @@ plt.grid(True)
 
 # Surface Mass Balance
 ax1 = fig.add_subplot(nplot,1,2)
-plt.plot(xCell[ind]/1000.,SMB[ind])
+plt.plot(unique_xs/1000.,MeanProf(SMB[:]))
 plt.xlabel('X-distance (km)')
 plt.ylabel('Surface Mass Balance (kg m2 s-1)')
 plt.legend(fontsize=6)
 plt.grid(True)
 
-# Sliding Speed
+# Basal Melt Input
 ax1 = fig.add_subplot(nplot,1,3)
-plt.plot(xCell[ind]/1000.,Ubsl[ind])
+plt.plot(unique_xs/1000.,MeanProf(bmelt[:]))
+plt.xlabel('X-distance (km)')
+plt.ylabel('Basal Melt Input (kg m2 s-1)')
+plt.legend(fontsize=6)
+plt.grid(True)
+
+# Sliding Speed
+ax1 = fig.add_subplot(nplot,1,4)
+plt.plot(unique_xs/1000.,MeanProf(Ubsl[:]))
 plt.xlabel('X-distance (km)')
 plt.ylabel('Sliding Speed (m s-1)')
 plt.legend(fontsize=6)

@@ -101,9 +101,13 @@ def computeBedGoeller(x,y):
 # Set bedTopography (this variable should always be present in the input file)
 print "Defining bedTopography"
 
+dx = xCell[1]-xCell[0]
+x0 = xCell[:].max()-200000.     # ice sheet margin
+
 # Compute the bed topography
 bedTopography = np.zeros((nCells,))
 #bedTopography = computeBedGoeller(xCell,yCell)
+bedTopography[xCell[:]<=x0] = -1.0   # move the bed down past the margin to create an tiny ice shelf (this helps with the boundary.
 gridfile.variables['bedTopography'][0,:] = bedTopography[:]  # dimensions of gridfile variable are Time and nCells
 
 # Debug: Print the topography along the bottom row.
@@ -127,8 +131,6 @@ rhoi = 910.
 g = 9.81
 seconds_per_year = 3600.0 * 24.0 * 365.0
 H0 = 0.01
-dx = xCell[1]-xCell[0]
-x0 = xCell[:].max()-200000.-dx     # ice sheet margin
 
 usrf = np.zeros((nCells,))
 
