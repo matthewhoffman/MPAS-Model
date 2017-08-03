@@ -808,7 +808,10 @@ contains
          endif
          call mpas_pool_get_subpool(block % structs, 'hydro', hydroPool)
          call mpas_pool_get_array(hydroPool, 'effectivePressure', effectivePressure)
-         betaSolve = betaSolve * effectivePressure
+         !betaSolve = betaSolve * effectivePressure
+         betaSolve = min(betaSolve * effectivePressure,10002.0_RKIND)
+         ! TODO: As a temporary fix betaSolve takes the minimum between what is calculated from the SGH model and the constant
+         ! value used in MISMIP+. This should be more generalized for use in other cases.
 
          ! if using N-based friction with GLP, copy the value of beta across the grounding line
          ! to the floating side for the GLP to work properly

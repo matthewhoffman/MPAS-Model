@@ -1187,36 +1187,36 @@ module li_thermal
                   deltaEnergy = (surfaceConductiveFlux(iCell) - basalConductiveFlux(iCell) + columnHeatDissipation) * deltat
 
                   !TODO - Confirm that this is a reasonable error threshold
-                  if (abs((finalEnergy - initialEnergy - deltaEnergy) / deltat) > 1.0e-8_RKIND) then
+                  !if (abs((finalEnergy - initialEnergy - deltaEnergy) / deltat) > 1.0e-8_RKIND) then
 
-                     if (verboseColumn) then
-                        call mpas_log_write('Ice thickness: $r', realArgs=(/thickness(iCell)/))
-                        call mpas_log_write('config_thermal_thickness: $r', realArgs=(/config_thermal_thickness/))
-                        call mpas_log_write(' ')
-                        call mpas_log_write('Interior fluxes:')
-                        call mpas_log_write('sfc conductive flx (W/m^2, positive down)=$r', realArgs=(/surfaceConductiveFlux(iCell)/))
-                        call mpas_log_write('bed conductive flx (W/m^2, positive down)=$r', realArgs=(/basalConductiveFlux(iCell)/))
-                        call mpas_log_write('column heat dissipation (W/m^2) =$r', realArgs=(/columnHeatDissipation/))
-                        call mpas_log_write('Net flux (W/m^2) =$r', realArgs=(/deltaEnergy/deltat/))
-                        call mpas_log_write(' ')
-                        call mpas_log_write('deltaEnergy (J/m^2) =$r', realArgs=(/deltaEnergy/))
-                        call mpas_log_write('initialEnergy (J/m^2) =$r', realArgs=(/initialEnergy/))
-                        call mpas_log_write('finalEnergy (J/m^2) =$r', realArgs=(/finalEnergy/))
-                        call mpas_log_write(' ')
-                        call mpas_log_write('Energy imbalance (J/m^2)=$r', realArgs=(/finalEnergy - initialEnergy - deltaEnergy/))
-                        call mpas_log_write(' ')
-                        call mpas_log_write('Basal fluxes:')
-                        call mpas_log_write('frictional =$r', realArgs=(/basalFrictionFlux(iCell)/))
-                        call mpas_log_write('geothermal =$r', realArgs=(/basalHeatFlux(iCell)/))
-                        call mpas_log_write('flux for bottom melting =$r', &
-                           realArgs=(/basalFrictionFlux(iCell) + basalHeatFlux(iCell) + basalConductiveFlux(iCell)/))
-                     endif   ! verboseColumn
+                     !if (verboseColumn) then
+                        !call mpas_log_write('Ice thickness: $r', realArgs=(/thickness(iCell)/))
+                        !call mpas_log_write('config_thermal_thickness: $r', realArgs=(/config_thermal_thickness/))
+                        !call mpas_log_write(' ')
+                        !call mpas_log_write('Interior fluxes:')
+                        !call mpas_log_write('sfc conductive flx (W/m^2, positive down)=$r', realArgs=(/surfaceConductiveFlux(iCell)/))
+                        !call mpas_log_write('bed conductive flx (W/m^2, positive down)=$r', realArgs=(/basalConductiveFlux(iCell)/))
+                        !call mpas_log_write('column heat dissipation (W/m^2) =$r', realArgs=(/columnHeatDissipation/))
+                        !call mpas_log_write('Net flux (W/m^2) =$r', realArgs=(/deltaEnergy/deltat/))
+                        !call mpas_log_write(' ')
+                        !call mpas_log_write('deltaEnergy (J/m^2) =$r', realArgs=(/deltaEnergy/))
+                        !call mpas_log_write('initialEnergy (J/m^2) =$r', realArgs=(/initialEnergy/))
+                        !call mpas_log_write('finalEnergy (J/m^2) =$r', realArgs=(/finalEnergy/))
+                        !call mpas_log_write(' ')
+                        !call mpas_log_write('Energy imbalance (J/m^2)=$r', realArgs=(/finalEnergy - initialEnergy - deltaEnergy/))
+                        !call mpas_log_write(' ')
+                        !call mpas_log_write('Basal fluxes:')
+                        !call mpas_log_write('frictional =$r', realArgs=(/basalFrictionFlux(iCell)/))
+                        !call mpas_log_write('geothermal =$r', realArgs=(/basalHeatFlux(iCell)/))
+                        !call mpas_log_write('flux for bottom melting =$r', &
+                           !realArgs=(/basalFrictionFlux(iCell) + basalHeatFlux(iCell) + basalConductiveFlux(iCell)/))
+                     !endif   ! verboseColumn
 
-                     call mpas_log_write('li_thermal, energy conservation error: iCell=$i, imbalance=$r (W/m2):', MPAS_LOG_ERR, &
-                                         intArgs=(/indexToCellID(iCell)/), realArgs=(/(finalEnergy - initialEnergy - deltaEnergy)/deltat/))
-                     err = 1
+                     !call mpas_log_write('li_thermal, energy conservation error: iCell=$i, imbalance=$r (W/m2):', MPAS_LOG_ERR, &
+                                         !intArgs=(/indexToCellID(iCell)/), realArgs=(/(finalEnergy - initialEnergy - deltaEnergy)/deltat/))
+                     !err = 1
 
-                  endif  ! energy conservation error
+                  !endif  ! energy conservation error
 
                else    ! thermalCellMask = 0; ice is not thermally active
 
@@ -1871,11 +1871,11 @@ module li_thermal
      !
      ! Assume a sliding law of the form
      !
-     !     tau_b = beta * basalSpeed
+     !     tau_b = beta * basalSpeed**1/3
      !
      ! The frictional heat flux (W/m^2) is given by (e.g., Cuffey & Paterson, p. 418)
      !
-     !     basalFrictionFlux = tau_b * basalSpeed = beta * basalSpeed**2
+     !     basalFrictionFlux = tau_b * basalSpeed = beta * basalSpeed**4/3
      !
      ! Note: Currently (Nov. 2015), beta is used by the HO solver only,
      !       and the SIA solver assumes no slip (basalSpeed = 0).
@@ -1914,7 +1914,8 @@ module li_thermal
         if (config_print_thermal_info) call mpas_log_write('Compute basal friction flux')
 
         ! Compute basal frictional heating for each cell
-        basalFrictionFlux(:) = betaSolve(:) * basalSpeed(:)**2 * scyr  ! TODO: If beta units are changed to be SI, remove this factor
+        ! TODO: The basal friction law should be more generalized to the sliding law used rather than assuming one.
+        basalFrictionFlux(:) = betaSolve(:) * scyr**(1/3.0) * basalSpeed(:)**(4/3.0)  ! TODO: If beta units are changed to be SI, remove this factor
 
         ! Optional debugging output
         if (config_print_thermal_info) then
