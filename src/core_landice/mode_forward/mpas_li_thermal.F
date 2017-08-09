@@ -2763,7 +2763,7 @@ module li_thermal
                      ! transfer meltwater to the bed
                      ! Note: It is possible to have internal melting for floating ice.
                      !       If so, then this melting will later be switched from groundedBasalMassBall to floatingBasalMassBal.
-                     groundedBasalMassBal(iCell) = groundedBasalMassBal(iCell) - internalMeltRate      ! m/s
+                     !groundedBasalMassBal(iCell) = groundedBasalMassBal(iCell) - internalMeltRate      ! m/s
 
                      ! reset waterfrac to max value
                      waterfrac(k,iCell) = maxWaterfrac
@@ -2791,7 +2791,7 @@ module li_thermal
                      ! transfer meltwater to the bed
                      ! Note: It is possible to have internal melting for floating ice.
                      !       If so, then this melting will later be switched from groundedBasalMassBall to floatingBasalMassBal.
-                     groundedBasalMassBal(iCell) = groundedBasalMassBal(iCell) - internalMeltRate      ! m/s
+                     !groundedBasalMassBal(iCell) = groundedBasalMassBal(iCell) - internalMeltRate      ! m/s
 
                      ! reset T to Tpmp
                      temperature(k,iCell) = pmpTemperature(k)

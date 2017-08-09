@@ -407,7 +407,7 @@ module li_advection
 
          where ( li_mask_is_grounded_ice(cellMask) )
 
-            basalMassBal = groundedBasalMassBal
+            basalMassBal = 0.0_RKIND
 
          elsewhere ( li_mask_is_floating_ice(cellMask) )
 
