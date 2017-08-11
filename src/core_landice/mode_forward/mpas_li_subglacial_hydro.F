@@ -238,6 +238,8 @@ module li_subglacial_hydro
       real (kind=RKIND), dimension(:,:), pointer :: temperature, flowParamA
       real (kind=RKIND), dimension(:), pointer :: Wtill, WtillOld
       real (kind=RKIND), dimension(:), pointer :: basalMeltInput
+      real (kind=RKIND), dimension(:), pointer :: basalSpeed
+      real (kind=RKIND), dimension(:), pointer :: betaSolve
       real (kind=RKIND), dimension(:), pointer :: groundedBasalMassBal
       real (kind=RKIND), dimension(:), pointer :: basalHeatFlux
       real (kind=RKIND), dimension(:), pointer :: basalFrictionFlux
@@ -335,7 +337,17 @@ module li_subglacial_hydro
              call mpas_pool_get_subpool(block % structs, 'hydro', hydroPool)
              call mpas_pool_get_array(hydroPool, 'basalMeltInput', basalMeltInput)
              call mpas_pool_get_array(geometryPool,'groundedBasalMassBal',groundedBasalMassBal)
-             basalMeltInput = -1.0 * groundedBasalMassBal ! TODO: Ensure positive flux?
+
+             !!! Temporary Fix for MISMIP+ SGH runs. Calculate the basalMeltInput
+             !from the sliding friction flux only. Calculate this within the SGH
+             !solver so that we can bypass the thermal solver completely. We had issues with a strong
+             !heat sink from the conductive heat flux after rapid thinning
+
+             ! get fields from the velocity pool
+             call mpas_pool_get_array(velocityPool, 'basalSpeed', basalSpeed)
+             call mpas_pool_get_array(velocityPool, 'betaSolve', betaSolve)
+             ! Compute basal frictional heating for each cell and divide by latent heat to get melt input
+             basalMeltInput = (betaSolve(:) * scyr**(1/3.0) * basalSpeed(:)**(4/3.0))/latent_heat_ice
          elseif (trim(config_SGH_basal_melt) == 'basal_heat') then
              call mpas_pool_get_subpool(block % structs, 'hydro', hydroPool)
              call mpas_pool_get_subpool(block % structs, 'thermal', thermalPool)
