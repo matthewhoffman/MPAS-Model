@@ -1,0 +1,43 @@
+#!/bin/bash
+
+#Submit this script with: sbatch filename
+
+#SBATCH --time=6:00:00   # walltime
+#SBATCH --nodes=2   # number of nodes
+#SBATCH --ntasks=32   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks-per-node=16   # number of tasks per node
+#SBATCH --qos=low   # qos name
+#SBATCH --job-name=experiments # job name
+#SBATCH --account=w17_greenland # account name
+
+source /users/bhills/setup_gnu_env.juneAlbany.sh
+
+date
+
+cd Ice0
+mpirun -n 16 ./landice_model
+cd ../Ice1r
+mpirun -n 16 ./landice_model
+cd ../Ice2r
+mpirun -n 16 ./landice_model
+cd ../Ice1ra
+ncks -O -x -v floatingBasalMassBal ../Ice1r/restart_00100.nc ./restart_00100.nc
+mpirun -n 16 ./landice_model
+cd ../Ice1rr
+mpirun -n 16 ./landice_model
+cd ../Ice2ra
+ncks -O -x -v floatingBasalMassBal ../Ice2r/restart_00100.nc ./restart_00100.nc
+mpirun -n 16 ./landice_model
+cd ../Ice2rr
+mpirun -n 16 ./landice_model
+cd ../Ice1rax
+mpirun -n 16 ./landice_model
+cd ../Ice1rrx
+mpirun -n 16 ./landice_model
+cd ../Ice2rax
+mpirun -n 16 ./landice_model
+cd ../Ice2rrx
+mpirun -n 16 ./landice_model
+
+date
+

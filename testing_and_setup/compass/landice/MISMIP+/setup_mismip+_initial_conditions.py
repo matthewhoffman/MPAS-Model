@@ -3,7 +3,7 @@
 
 # This script sets up initial conditions for the MISMIP+ experiment.
 # See this paper for details:
-#   X. Asay-Davis et al. (2015), Experimental design for three interrelated 
+#   X. Asay-Davis et al. (2015), Experimental design for three interrelated
 #   Marine Ice-Sheet and Ocean Model Intercomparison Projects, Geosci. Model Devel. Discuss.,
 #   8, 9859-9924.
 # Following grid setup and initialization, the code should be spun up for ~10-20 ka
@@ -111,7 +111,7 @@ def computeBed(x,y):
    Bsum = B_x + B_y
    B = np.maximum(Bsum, Bmax)   # B >= Bmax
    return B
-   
+
 # Create the required variables in the netCDF file.
 
 # Set bedTopography (this variable should always be present in the input file)
@@ -135,12 +135,13 @@ gridfile.variables['bedTopography'][0,:] = bedTopography[:]  # dimensions of gri
 print "Defining thickness"
 xcalve = 640000.0       # m
 init_thickness = 100.0  # m
+'''
 thickness = np.zeros((nCells,))
 for iCell in range(1,nCells):
    if xCell[iCell] < xcalve:
       thickness[iCell] = init_thickness
-
-gridfile.variables['thickness'][0,:] = thickness[:]
+'''
+gridfile.variables['thickness'][0,:] = init_thickness
 
 # Set the surface mass balance.
 # MISMIP+ assumes an SMB of 0.3 m/yr.
@@ -214,11 +215,12 @@ else:
    beta = gridfile.createVariable('beta', datatype, ('Time','nCells'))
 
 print "Defining beta"
-# For the Weertman power law, beta holds the 'C' coefficient.  The beta units in MPAS are a mess right now.  
+# For the Weertman power law, beta holds the 'C' coefficient.  The beta units in MPAS are a mess right now.
 # In the MISMIP3D setup script, C = 10^7 Pa m^-1/3 s^1/3 translates to beta = 31880.
 # For MISMIP+, C = 3.160 x 10^6 Pa m^-1/3 s^1/3 translates to beta = 10002.
- 
-C = 3.160e6   # Pa m^{-1/3} s^{1/3}
+# If using the SGH model to determine basal friction this C value is going to be more like 1.0
+
+C = 1.0 #3.160e6   # Pa m^{-1/3} s^{1/3}
 C = C / seconds_per_year**(1.0/3.0)  # convert to MPAS units
 gridfile.variables['beta'][0,:] = C
 
