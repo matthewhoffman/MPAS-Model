@@ -71,7 +71,7 @@ def contourMPAS(field, contour_levs=None):
   yc = np.linspace(yCell.min(), yCell.max(), numrows)
   xi, yi = np.meshgrid(xc, yc)
   #-- Interpolate at the points in xi, yi
-  zi = griddata(xCell, yCell, field, xi, yi)
+  zi = griddata(xCell, yCell, field, xi, yi, interp='linear')
   #-- Display the results
   if contour_levs == None:
      im = plt.contour(xi, yi, zi)
@@ -292,6 +292,7 @@ else:
     plt.ylabel('Volume (10$^6$ km$^3$)')
 plt.plot( (0.0,), volume, 'ro')  # MPAS results
 plt.xticks(())
+print "MPASLI volume = {}".format(volume)
 
 fig.add_subplot(152)
 area = (areaCell[iceIndices]).sum() / 1000.0**2 / 10.0**6
@@ -305,6 +306,7 @@ else:
     plt.ylabel('Area (10$^6$ km$^2$)')
 plt.plot( (0.0,), area, 'ro')  # MPAS results
 plt.xticks(())
+print "MPASLI area = {}".format(area)
 
 fig.add_subplot(153)
 warmBedIndices = np.where(np.logical_and(thickness[timelev,:] > 0.0, basalTemperature[timelev,:] >= (basalPmpTemperature[timelev,:] - 0.01) ) )[0]  # using threshold here to identify melted locations
@@ -323,6 +325,7 @@ else:
     plt.ylabel('Melt fraction')
 plt.plot( (0.0,), meltfraction, 'ro')  # MPAS results
 plt.xticks(())
+print "MPASLI melt fraction = {}".format(meltfraction)
 
 fig.add_subplot(154)
 dividethickness = thickness[timelev, divideIndex]
@@ -334,6 +337,7 @@ else:
     plt.ylabel('Divide thickness (m)')
 plt.plot( (0.0,), dividethickness, 'ro')  # MPAS results
 plt.xticks(())
+print "MPASLI divide thickness = {}".format(dividethickness[0])
 
 fig.add_subplot(155)
 dividebasaltemp = basalTemperature[timelev, divideIndex]
@@ -346,6 +350,7 @@ else:
     plt.ylabel('Divide basal temp. (K)')
 plt.plot( (0.0,), dividebasaltemp, 'ro')  # MPAS results
 plt.xticks(())
+print "MPASLI divide basal temperature = {}".format(dividebasaltemp[0])
 
 plt.tight_layout()
 
