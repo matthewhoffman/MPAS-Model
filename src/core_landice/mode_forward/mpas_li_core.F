@@ -70,6 +70,7 @@ module li_core
       use li_setup
       use li_constants
       use li_subglacial_hydro
+      use li_analysis_driver
 !!!      use mpas_tracer_advection
 !!!      use li_global_diagnostics
 
@@ -139,6 +140,8 @@ module li_core
       err = ior(err, err_tmp)
       call mpas_stream_mgr_reset_alarms(domain % streamManager, direction=MPAS_STREAM_OUTPUT, ierr=err_tmp)
       err = ior(err, err_tmp)
+
+      call li_analysis_bootstrap(domain, err=err_tmp)
 
       !
       ! Read the remaining input streams

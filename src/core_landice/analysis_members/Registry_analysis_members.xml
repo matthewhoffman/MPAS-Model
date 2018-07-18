@@ -1,2 +1,5 @@
 #include "Registry_global_stats.xml"
 #include "Registry_regional_stats.xml"
+#include "Registry_time_series_stats.xml"
+#include "Registry_time_series_stats_monthly.xml"
+#include "Registry_time_series_stats_annual.xml"

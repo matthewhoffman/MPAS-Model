@@ -1,0 +1,24 @@
+        <packages>
+                <package name="timeSeriesStatsMonthlyAMPKG" description="This package includes variables required for the monthly time series stats analysis member."/>
+                <package name="timeSeriesStatsAnnualAMPKG" description="This package includes variables required for the daily time series stats analysis member."/>
+        </packages>
+
+        <var_struct name="timeSeriesStatsAM"
+                                time_levs="1"
+                                packages="timeSeriesStatsMonthlyAMPKG;timeSeriesStatsAnnualAMPKG">
+                <var name="timeSeriesStatsOneString"
+                         type="text"
+                         dimensions="Time"
+                         units="unitless"
+                />
+                <var name="timeSeriesStatsOneInteger"
+                         type="integer"
+                         dimensions="Time"
+                         units="unitless"
+                />
+                <var name="timeSeriesStatsOneReal"
+                         type="real"
+                         dimensions="Time"
+                         units="unitless"
+                />
+        </var_struct>
