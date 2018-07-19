@@ -66,6 +66,8 @@ module li_time_series_stats
 
     ! counter for accumulation
     integer, pointer :: counter
+    real, kind(RKIND), pointer :: accumulated_weight  ! used for weighted average for nonuniform dt
+    real, kind(RKIND), pointer :: accumulated_weight_old
     character (len=StrKIND), pointer :: xtime_start
     character (len=StrKIND), pointer :: xtime_end
   end type time_series_buffer_type
@@ -324,12 +326,15 @@ subroutine li_compute_time_series_stats(domain, timeLevel, instance, err)!{{{
         unset_xtime = .false.
       end if
 
+      series % buffers(b) % accumulated_weight_old = series % buffers(b) % accumulated_weight ! save the previous weight
       if (series % buffers(b) % reset_flag == 1) then
         series % buffers(b) % xtime_start = start_xtime
         series % buffers(b) % counter = 1
+        series % buffers(b) % accumulated_weight = deltat
       else
         series % buffers(b) % xtime_end = end_xtime
         series % buffers(b) % counter = series % buffers(b) % counter + 1
+        series % buffers(b) % accumulated_weight = series % buffers(b) % accumulated_weight + deltat
       end if
     end if
   end do
@@ -451,6 +456,8 @@ subroutine debug_state(series)
     write(*,*) 'duration alarm: ', trim(series % buffers(b) % duration_alarm_ID)
     write(*,*) 'reset alarm: ', trim(series % buffers(b) % reset_alarm_ID)
     write(*,*) 'counter: ', series % buffers(b) % counter
+    write(*,*) 'accumulated_weight: ', series % buffers(b) % accumulated_weight
+    write(*,*) 'accumulated_weight_old: ', series % buffers(b) % accumulated_weight_old
     write(*,*) 'xtime start: ', trim(series % buffers(b) % xtime_start)
     write(*,*) 'xtime end: ', trim(series % buffers(b) % xtime_end)
   end do
@@ -2052,9 +2059,23 @@ end subroutine copy_field_5r!}}}
 !>  have a special case of normalizing the data before writing it
 !>  to disk).
 !-----------------------------------------------------------------------
+!subroutine operate0r_avg (start_block, variable, buffers)
+!#include "time_series_inc/operate_1.inc"
+!  real (kind=RKIND), pointer :: in_array, out_array
+!#include "time_series_inc/operate_2.inc"
+!  out_array = (out_array * &
+!    (buffers(b) % counter - 1) + in_array) &
+!    / buffers(b) % counter
+!#include "time_series_inc/operate_3.inc"
+!end subroutine operate0r_avg
 subroutine operate0r_avg (start_block, variable, buffers)
 #include "time_series_inc/operate_1.inc"
   real (kind=RKIND), pointer :: in_array, out_array
+  type (mpas_pool_type), pointer :: meshPool
+  real (kind=RKIND), pointer :: deltat
+
+  call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
+  call mpas_pool_get_array(meshPool, 'deltat', deltat)
 #include "time_series_inc/operate_2.inc"
   out_array = (out_array * &
     (buffers(b) % counter - 1) + in_array) &
