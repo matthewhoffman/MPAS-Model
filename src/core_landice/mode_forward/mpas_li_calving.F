@@ -193,8 +193,6 @@ module li_calving
       endif
 
       ! compute calvingThickness based on the calving_config option
-      ! the calvingThickness field gets applied to the thickness state field
-      ! after this if-construct
       if (trim(config_calving) == 'thickness_threshold') then
 
          call thickness_calving(domain, calvingFraction, err_tmp)
@@ -843,6 +841,7 @@ module li_calving
       !-----------------------------------------------------------------
       type (block_type), pointer :: block
       type (mpas_pool_type), pointer :: geometryPool
+      type (mpas_pool_type), pointer :: meshPool
       real (kind=RKIND), dimension(:), pointer :: calvingThickness    ! thickness of ice that calves (computed in this subroutine)
       real (kind=RKIND), dimension(:), pointer :: thickness
       integer, dimension(:), pointer :: cellMask
@@ -855,6 +854,7 @@ module li_calving
 
          ! get pools
          call mpas_pool_get_subpool(block % structs, 'geometry', geometryPool)
+         call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
          call mpas_pool_get_array(geometryPool, 'calvingThickness', calvingThickness)
          call mpas_pool_get_array(geometryPool, 'thickness', thickness)
          call mpas_pool_get_array(geometryPool, 'cellMask', cellMask)
@@ -869,10 +869,70 @@ module li_calving
          ! === apply calving ===
          thickness(:) = thickness(:) - calvingThickness(:)
 
+         call remove_small_islands(meshPool, geometryPool)
+
          block => block % next
       enddo
 
    end subroutine floating_calving
+
+
+   subroutine remove_small_islands(meshPool, geometryPool)
+      type (mpas_pool_type), pointer, intent(in) :: meshPool !< Input: Mesh pool
+      type (mpas_pool_type), pointer, intent(inout) :: geometryPool !< Input: Geometry pool
+
+      real (kind=RKIND), dimension(:), pointer :: calvingThickness    ! thickness of ice that calves (computed in this subroutine)
+      real (kind=RKIND), dimension(:), pointer :: thickness
+      integer, dimension(:), pointer :: cellMask
+      integer, dimension(:,:), pointer :: cellsOnCell ! list of cells that neighbor each cell
+      integer, dimension(:), pointer :: nEdgesOnCell ! number of cells that border each cell
+      integer, pointer :: nCellsSolve
+      integer :: iCell, jCell, n, nIceNeighbors, nIceNeighbors2, neighborWithIce
+
+      call mpas_pool_get_dimension(meshPool, 'nCellsSolve', nCellsSolve)
+      call mpas_pool_get_array(meshPool, 'cellsOnCell', cellsOnCell)
+      call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
+      call mpas_pool_get_array(geometryPool, 'calvingThickness', calvingThickness)
+      call mpas_pool_get_array(geometryPool, 'thickness', thickness)
+      call mpas_pool_get_array(geometryPool, 'cellMask', cellMask)
+
+      do iCell = 1, nCellsSolve
+         if (li_mask_is_ice(cellMask(iCell))) then ! might as well do for both grounded or floating
+            nIceNeighbors = 0
+            do n = 1, nEdgesOnCell(iCell)
+               jCell = cellsOnCell(n, iCell)
+               if (li_mask_is_ice(jCell)) then
+                  nIceNeighbors = nIceNeighbors + 1
+                  neighborWithIce = jCell
+               endif
+            enddo
+            if (nIceNeighbors == 0) then
+               ! kill this location  TODO: consider issues here with glacial inception
+               calvingThickness(iCell) = calvingThickness(iCell) + thickness(iCell)
+               thickness(iCell) = 0.0_RKIND
+            elseif (nIceNeighbors == 1) then
+               ! check if this neighbor has any additional neighbors with ice
+               nIceNeighbors2 = 0
+               do n = 1, nEdgesOnCell(neighborWithIce)
+                  jCell = cellsOnCell(n, neighborWithIce)
+                  if (li_mask_is_ice(jCell)) then
+                     nIceNeighbors2 = nIceNeighbors2 + 1
+                  endif
+               enddo
+               if (nIceNeighbors2 == 1) then ! only neighbor with ice must have been iCell
+                  ! kill both cells
+                  calvingThickness(iCell) = calvingThickness(iCell) + thickness(iCell)
+                  thickness(iCell) = 0.0_RKIND
+                  calvingThickness(neighborWithIce) = calvingThickness(neighborWithIce) + thickness(neighborWithIce)
+                  thickness(neighborWithIce) = 0.0_RKIND
+               endif
+
+            endif ! check on nIceNeighbors
+ 
+         endif ! check if iCell has ice
+      end do ! loop over cells
+
+   end subroutine remove_small_islands
 
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
