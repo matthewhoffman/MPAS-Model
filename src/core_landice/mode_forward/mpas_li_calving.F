@@ -1498,12 +1498,13 @@ module li_calving
       integer, dimension(:), pointer :: nEdgesOnCell ! number of cells that border each cell
 
       integer, dimension(:), pointer :: contiguousDynamicIce, contiguousDynamicIceOld
-      integer, pointer :: nCells
+      integer, pointer :: nCells, nCellsSolve
       integer, dimension(:), pointer :: nCellsArray
       integer :: iCell, jCell, n
       integer :: newMaskCountLocal, newMaskCountLocalAccum, newMaskCountGlobal
       integer :: err_tmp, err
       integer :: globalLoopCount, localLoopCount
+      integer :: localIcebergCellCount, globalIcebergCellCount
 
       err = 0
 
@@ -1641,15 +1642,17 @@ module li_calving
          call mpas_pool_get_array(geometryPool, 'contiguousDynamicIce', contiguousDynamicIce)
          call mpas_pool_get_array(geometryPool, 'contiguousDynamicIceOld', contiguousDynamicIceOld)
          call mpas_pool_get_dimension(geometryPool, 'nCells', nCells)
+         call mpas_pool_get_dimension(geometryPool, 'nCellsSolve', nCellsSolve)
 
          contiguousDynamicIceOld(:) = 0
-         do iCell = 1, nCells
+         do iCell = 1, nCellsSolve
             if (contiguousDynamicIce(iCell) == 0 .and. li_mask_is_dynamic_ice(cellMask(iCell))) then
                calvingThickness(iCell) = calvingThickness(iCell) + thickness(iCell)  ! remove any remaining ice here
                thickness(iCell) = 0.0_RKIND
                contiguousDynamicIceOld(iCell) = 1 ! debug: make this a mask of where icebergs were removed
             endif
          enddo
+         localIcebergCellCount = sum(contiguousDynamicIceOld)
 
 !         where(contiguousDynamicIce == 0 .and. li_mask_is_dynamic_ice(cellMask))
 !            calvingThickness = calvingThickness + thickness  ! remove any remaining ice here
@@ -1658,6 +1661,9 @@ module li_calving
 
          block => block % next
       end do
+
+      ! Calculate total iceberg cells removed (not needed but useful for log - note requires extra reduce!)
+      call mpas_dmpar_sum_int(domain % dminfo, localIcebergCellCount, globalIcebergCellCount)
 
       ! update halo - probably not needed?
       call mpas_timer_start("halo updates")
@@ -1668,7 +1674,7 @@ module li_calving
       call mpas_deallocate_scratch_field(contiguousDynamicIceField, single_block_in=.false.)
       call mpas_deallocate_scratch_field(contiguousDynamicIceOldField, single_block_in=.false.)
 
-      call mpas_log_write("Iceberg-detection flood-fill complete.")
+      call mpas_log_write("Iceberg-detection flood-fill complete. Removed $i iceberg cells.", intArgs=(/globalIcebergCellCount/))
       call mpas_timer_stop("iceberg detection")
    end subroutine remove_icebergs
 
