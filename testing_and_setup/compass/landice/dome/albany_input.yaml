@@ -2,6 +2,7 @@
 ---
 ANONYMOUS:
   Problem: 
+    Use MDField Memoization: true
     Solution Method: Steady
     Parameters: 
       Number: 1
@@ -11,6 +12,7 @@ ANONYMOUS:
       'Glen''s Law Homotopy Parameter': 1.0
   Discretization: 
     Exodus Output File Name: albany_output.exo
+    Element Shape: Prism
   Piro: 
     LOCA: 
       Bifurcation: { }
