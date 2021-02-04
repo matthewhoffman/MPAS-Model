@@ -1384,6 +1384,7 @@ module mpas_io
       integer, dimension(6) :: start6
       integer, dimension(6) :: count6
       character (len=StrKIND), dimension(1) :: tempchar
+      integer :: charLen
       type (fieldlist_type), pointer :: field_cursor
 
       integer i, j
@@ -1480,14 +1481,22 @@ module mpas_io
 !         call mpas_log_write('  value is char')
          if (field_cursor % fieldhandle % has_unlimited_dim) then
             count2(1) = field_cursor % fieldhandle % dims(1) % dimsize
+            charLen = count2(1)
             pio_ierr = PIO_get_var(handle % pio_file, field_cursor % fieldhandle % fieldid, start2, count2, tempchar)
-            charVal(1:count2(1)) = tempchar(1)(1:count2(1))
          else
             start1(1) = 1
             count1(1) = field_cursor % fieldhandle % dims(1) % dimsize
+            charLen = count1(1)
             pio_ierr = PIO_get_var(handle % pio_file, field_cursor % fieldhandle % fieldid, start1, count1, tempchar)
-            charVal(1:count1(1)) = tempchar(1)(1:count1(1))
          end if
+         ! Only keep up to the first null character
+         charVal(:) = ' '
+         do j = 1, charLen
+            if ((tempchar(1)(j:j) == CHAR(0)) ) then
+               exit
+            end if
+            charVal(j:j) = tempchar(1)(j:j)
+         end do
       else if (present(charArray1d)) then
 !         call mpas_log_write('  value is char1')
          if (field_cursor % fieldhandle % has_unlimited_dim) then
@@ -1505,11 +1514,10 @@ module mpas_io
                ! the string, whichever comes first
                charArray1d(i)(:) = ' '
                do j = 1, len(tempchar(1))
-                  if ( tempchar(1)(j:j) /= CHAR(0)) then
-                     charArray1d(i)(j:j) = tempchar(1)(j:j)
-                  else
+                  if (tempchar(1)(j:j) == CHAR(0)) then
                      exit
                   end if
+                  charArray1d(i)(j:j) = tempchar(1)(j:j)
                end do
             end do
          else
@@ -2187,6 +2195,8 @@ module mpas_io
 
    subroutine MPAS_io_get_var_char0d(handle, fieldname, val, ierr)
 
+      use mpas_c_interfacing, only : MPAS_sanitize_string
+
       implicit none
 
       type (MPAS_IO_Handle_type), intent(inout) :: handle
@@ -2198,11 +2208,14 @@ module mpas_io
       if (present(ierr)) ierr = MPAS_IO_NOERR
 
       call MPAS_io_get_var_generic(handle, fieldname, charVal=val, ierr=ierr)
+      call MPAS_sanitize_string(val)
 
    end subroutine MPAS_io_get_var_char0d
 
 
    subroutine MPAS_io_get_var_char1d(handle, fieldname, val, ierr)
+
+      use mpas_c_interfacing, only : MPAS_sanitize_string
 
       implicit none
 
@@ -2211,10 +2224,15 @@ module mpas_io
       character (len=*), dimension(:), intent(out) :: val
       integer, intent(out), optional :: ierr
 
+      integer :: i
+
 !     call mpas_log_write('Called MPAS_io_get_var_char1d()')
       if (present(ierr)) ierr = MPAS_IO_NOERR
 
       call MPAS_io_get_var_generic(handle, fieldname, charArray1d=val, ierr=ierr)
+      do i=1,size(val)
+         call MPAS_sanitize_string(val(i))
+      end do
 
    end subroutine MPAS_io_get_var_char1d
 
@@ -4594,8 +4612,8 @@ module mpas_io
       trimmedVal = trim(attValue)
 
       if ( valLen > StrKind ) then
-         call mpas_log_write('Attribute ''' // trim(attName) // ''' has a value longer than StrKIND. ' // &
-             'It will be cut to a length of $i', MPAS_LOG_WARN, intArgs=(/StrKIND/) )
+         call mpas_log_write("Attribute '" // trim(attName) // "' has a value longer than StrKIND. " // &
+             "It will be cut to a length of $i", MPAS_LOG_WARN, intArgs=(/StrKIND/) )
          attValueLocal = trimmedVal(1:StrKIND)
       else
          attValueLocal = trimmedVal
